@@ -29,16 +29,6 @@ public abstract class BaseContentResolver implements ContentResolver {
         resolve(content, Collections.unmodifiableList(realFetcherList));
     }
 
-    @Override
-    public final void traverseOnly(QualifiedContent content, List<ContentFetcher> fetchers) throws IOException {
-        List<ContentFetcher> realFetcherList = new ArrayList<>(fetchers.size() + 1);
-        realFetcherList.addAll(fetchers);
-        realFetcherList.add(new BackupContentFetcher());
-        traverse(content, Collections.unmodifiableList(realFetcherList));
-    }
-
     protected abstract void resolve(QualifiedContent content, List<ContentFetcher> fetchers) throws IOException;
-
-    protected abstract void traverse(QualifiedContent content, List<ContentFetcher> fetchers) throws IOException;
 
 }

@@ -64,24 +64,4 @@ public class JarContentResolver extends BaseContentResolver {
         }
     }
 
-    @Override
-    protected void traverse(QualifiedContent content, List<ContentFetcher> fetchers) throws IOException {
-        File root = content.getFile();
-        ZipInputStream zin = new ZipInputStream(new BufferedInputStream(new FileInputStream(root)));
-        ZipEntry zipEntry;
-        try {
-            while ((zipEntry = zin.getNextEntry()) != null) {
-                if (zipEntry.isDirectory()) {
-                    continue;
-                }
-                String relativePath = zipEntry.getName();
-                byte[] raw = ByteStreams.toByteArray(zin);
-                Input input = new Input(content, relativePath, raw);
-                ContentFetcherChain chain = new ContentFetcherChain(fetchers, input, 0);
-                chain.proceed(input);
-            }
-        } finally {
-            zin.close();
-        }
-    }
 }

@@ -34,13 +34,4 @@ public class QualifiedContentResolverImpl implements ContentResolver {
             }
         }
     }
-
-    @Override
-    public void traverseOnly(QualifiedContent content, List<ContentFetcher> fetchers) throws IOException {
-        for (ContentResolver resolver : resolvers) {
-            if (resolver.accepted(content)) {
-                resolver.traverseOnly(content, fetchers);
-            }
-        }
-    }
 }

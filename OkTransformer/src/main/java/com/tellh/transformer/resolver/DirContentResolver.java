@@ -44,21 +44,6 @@ public class DirContentResolver extends BaseContentResolver {
         }
     }
 
-    @Override
-    protected void traverse(QualifiedContent content, List<ContentFetcher> fetchers) throws IOException {
-        File root = content.getFile();
-        URI base = root.toURI();
-        for (File file : Files.fileTreeTraverser().preOrderTraversal(root)) {
-            if (file.isFile() && !file.getName().equalsIgnoreCase(".DS_Store")) {
-                String relativePath = base.relativize(file.toURI()).toString();
-                byte[] raw = Files.toByteArray(file);
-                Input input = new Input(content, relativePath, raw);
-                ContentFetcherChain chain = new ContentFetcherChain(fetchers, input, 0);
-                chain.proceed(input);
-            }
-        }
-    }
-
     protected void handleRawFile(QualifiedContent content, List<ContentFetcher> fetchers, byte[] raw, String relativePath, File outputFile) throws IOException {
         Input input = new Input(content, relativePath, raw);
         ContentFetcherChain chain = new ContentFetcherChain(fetchers, input, 0);

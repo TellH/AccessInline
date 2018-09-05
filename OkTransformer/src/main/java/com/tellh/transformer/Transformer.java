@@ -1,27 +1,24 @@
 package com.tellh.transformer;
 
+import com.android.build.api.transform.JarInput;
 import com.android.build.api.transform.QualifiedContent;
-import com.google.common.io.ByteStreams;
 import com.google.common.io.Files;
-import com.tellh.transformer.fetcher.BackupContentFetcher;
 import com.tellh.transformer.fetcher.ClassData;
 import com.tellh.transformer.fetcher.ContentFetcher;
-import com.tellh.transformer.fetcher.ContentFetcherChain;
-import com.tellh.transformer.fetcher.Input;
+import com.tellh.transformer.fetcher.task.ClassVisitTask;
+import com.tellh.transformer.fetcher.task.ExtractDirContentTask;
+import com.tellh.transformer.fetcher.task.QualifiedContentTask;
+import com.tellh.transformer.fetcher.task.ExtractJarContentTask;
 import com.tellh.transformer.resolver.DirContentResolver;
 import com.tellh.transformer.resolver.JarContentResolver;
 import com.tellh.transformer.resolver.QualifiedContentResolverImpl;
 
-import java.io.BufferedInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -30,8 +27,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 
 /**
  * Created by tlh on 2018/8/21.
@@ -53,68 +48,108 @@ public class Transformer {
     }
 
     public void resolve(ContentFetcher... fetchers) throws IOException, InterruptedException {
-        forEach(false, fetchers);
-    }
-
-    public void traverseOnly(ContentFetcher... fetchers) throws IOException, InterruptedException {
-        forEach(true, fetchers);
-    }
-
-    public void traverseAndroidJar(File jar, ContentFetcher... fetchers) {
-        try {
-            List<ContentFetcher> realFetcherList = new ArrayList<>(fetchers.length + 1);
-            realFetcherList.addAll(Arrays.asList(fetchers));
-            realFetcherList.add(new BackupContentFetcher());
-            List<Future<Void>> tasks = new ResolveJarContentTask(jar).call()
-                    .stream()
-                    .map(classData -> (Callable<Void>) () -> {
-                        Input input = new Input(null, classData.getRelativePath(), classData.getClassBytes());
-                        ContentFetcherChain chain = new ContentFetcherChain(realFetcherList, input, 0);
-                        chain.proceed(input);
-                        return null;
-                    })
-                    .map(t -> service.submit(t))
-                    .collect(Collectors.toList());
-
-            // block until all task has finish.
-            for (Future<Void> future : tasks) {
-                try {
-                    future.get();
-                } catch (ExecutionException e) {
-                    Throwable cause = e.getCause();
-                    if (cause instanceof IOException) {
-                        throw (IOException) cause;
-                    } else if (cause instanceof InterruptedException) {
-                        throw (InterruptedException) cause;
-                    } else {
-                        throw new RuntimeException(e.getCause());
-                    }
-                }
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private void forEach(boolean traverseOnly, ContentFetcher... fetchers) throws IOException, InterruptedException {
         List<Future<Void>> tasks = Stream.concat(context.getAllJars().stream(), context.getAllDirs().stream())
-                .map(q -> new QualifiedContentTask(q, fetchers, traverseOnly))
+                .map(q -> new QualifiedContentTask(q, fetchers, resolver))
                 .map(t -> service.submit(t))
                 .collect(Collectors.toList());
 
         // block until all task has finish.
-        for (Future<Void> future : tasks) {
-            try {
+        try {
+            for (Future<Void> future : tasks) {
                 future.get();
-            } catch (ExecutionException e) {
-                Throwable cause = e.getCause();
-                if (cause instanceof IOException) {
-                    throw (IOException) cause;
-                } else if (cause instanceof InterruptedException) {
-                    throw (InterruptedException) cause;
-                } else {
-                    throw new RuntimeException(e.getCause());
-                }
+            }
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof IOException) {
+                throw (IOException) cause;
+            } else if (cause instanceof InterruptedException) {
+                throw (InterruptedException) cause;
+            } else {
+                throw new RuntimeException(e.getCause());
+            }
+        }
+    }
+
+    public void traverseOnly(ContentFetcher... fetchers) throws IOException, InterruptedException {
+        traverseV1(fetchers);
+    }
+
+    private void traverseV1(ContentFetcher[] fetchers) throws InterruptedException, IOException {
+        List<Future<List<ClassData>>> tasks = Stream.concat(context.getAllJars().stream(), context.getAllDirs().stream())
+                .map(q -> q instanceof JarInput ? new ExtractJarContentTask(q.getFile(), Arrays.asList(fetchers)) :
+                        new ExtractDirContentTask(q.getFile(), Arrays.asList(fetchers)))
+                .map(t -> service.submit(t))
+                .collect(Collectors.toList());
+
+        // block until all task has finish.
+        try {
+            for (Future<List<ClassData>> future : tasks) {
+                future.get();
+            }
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof IOException) {
+                throw (IOException) cause;
+            } else if (cause instanceof InterruptedException) {
+                throw (InterruptedException) cause;
+            } else {
+                throw new RuntimeException(e.getCause());
+            }
+        }
+    }
+
+    private void traverseV2(ContentFetcher... fetchers) throws IOException, InterruptedException {
+        List<Future<List<ClassData>>> tasks = Stream.concat(context.getAllJars().stream(), context.getAllDirs().stream())
+                .map(q -> q instanceof JarInput ? new ExtractJarContentTask(q.getFile()) : new ExtractDirContentTask(q.getFile()))
+                .map(t -> service.submit(t))
+                .collect(Collectors.toList());
+
+        // block until all task has finish.
+        try {
+            List<ClassData> collectDataList = new ArrayList<>();
+            for (Future<List<ClassData>> future : tasks) {
+                collectDataList.addAll(future.get());
+            }
+
+            List<Future<Void>> visitTasks = collectDataList.stream()
+                    .map(data -> new ClassVisitTask(data, fetchers))
+                    .map(t -> service.submit(t))
+                    .collect(Collectors.toList());
+            for (Future<Void> future : visitTasks) {
+                future.get();
+            }
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof IOException) {
+                throw (IOException) cause;
+            } else if (cause instanceof InterruptedException) {
+                throw (InterruptedException) cause;
+            } else {
+                throw new RuntimeException(e.getCause());
+            }
+        }
+    }
+
+    public void traverseAndroidJar(File jar, ContentFetcher... fetchers) throws IOException, InterruptedException {
+        List<Future<Void>> tasks = new ExtractJarContentTask(jar).call()
+                .stream()
+                .map(classData -> new ClassVisitTask(classData, fetchers))
+                .map(t -> service.submit(t))
+                .collect(Collectors.toList());
+
+        try {
+            // block until all task has finish.
+            for (Future<Void> future : tasks) {
+                future.get();
+            }
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof IOException) {
+                throw (IOException) cause;
+            } else if (cause instanceof InterruptedException) {
+                throw (InterruptedException) cause;
+            } else {
+                throw new RuntimeException(e.getCause());
             }
         }
     }
@@ -136,62 +171,4 @@ public class Transformer {
         File file = context.getOutputFile(affinity, relativePath, contentTypes);
         Files.write(data, file);
     }
-
-
-    private class QualifiedContentTask implements Callable<Void> {
-
-        private QualifiedContent content;
-        private List<ContentFetcher> fetchers;
-        private boolean traverseOnly;
-
-        QualifiedContentTask(QualifiedContent content, ContentFetcher[] fetcher, boolean traverseOnly) {
-            this.content = content;
-            this.fetchers = Arrays.asList(fetcher);
-            this.traverseOnly = traverseOnly;
-        }
-
-        QualifiedContentTask(QualifiedContent content, ContentFetcher[] fetcher) {
-            this(content, fetcher, false);
-        }
-
-        @Override
-        public Void call() throws Exception {
-            if (resolver.accepted(content)) {
-                if (traverseOnly) {
-                    resolver.traverseOnly(content, Collections.unmodifiableList(fetchers));
-                } else {
-                    resolver.handle(content, Collections.unmodifiableList(fetchers));
-                }
-            }
-            return null;
-        }
-    }
-
-    private static class ResolveJarContentTask implements Callable<List<ClassData>> {
-        private final List<ClassData> zipEntryList;
-        private File jar;
-
-        public ResolveJarContentTask(File jar) {
-            this.jar = jar;
-            this.zipEntryList = new ArrayList<>();
-        }
-
-        @Override
-        public List<ClassData> call() throws Exception {
-            ZipInputStream zin = new ZipInputStream(new BufferedInputStream(new FileInputStream(jar)));
-            ZipEntry zipEntry;
-            try {
-                while ((zipEntry = zin.getNextEntry()) != null) {
-                    if (zipEntry.isDirectory()) {
-                        continue;
-                    }
-                    zipEntryList.add(new ClassData(ByteStreams.toByteArray(zin), zipEntry.getName()));
-                }
-            } finally {
-                zin.close();
-            }
-            return zipEntryList;
-        }
-    }
-
 }

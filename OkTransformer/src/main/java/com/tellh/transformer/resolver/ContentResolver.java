@@ -14,6 +14,4 @@ public interface ContentResolver {
     boolean accepted(QualifiedContent content);
 
     void handle(QualifiedContent content, List<ContentFetcher> fetchers) throws IOException;
-
-    void traverseOnly(QualifiedContent content, List<ContentFetcher> fetchers) throws IOException;
 }
