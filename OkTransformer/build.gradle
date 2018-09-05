@@ -1,0 +1,26 @@
+apply plugin: 'java-library'
+apply plugin: 'maven'
+group 'com.tellh'
+version '1.0.0'
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    compile gradleApi()
+    compileOnly "com.android.tools.build:gradle:2.3.2"
+    compile "com.google.guava:guava:22.0"
+    testCompile 'com.squareup.okio:okio:1.14.0'
+}
+
+sourceCompatibility = "1.8"
+targetCompatibility = "1.8"
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            //设置插件的GAV参数
+            pom.groupId = 'com.tellh'
+            pom.artifactId = 'inline_transformer'
+            pom.version = '1.0.0'
+            //文件发布到下面目录
+            repository(url: uri('../gradle_plugins'))
+        }
+    }
+}

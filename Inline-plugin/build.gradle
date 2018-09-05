@@ -1,0 +1,32 @@
+apply plugin: 'java'
+apply plugin: 'maven'
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    compile gradleApi()
+    compileOnly "com.android.tools.build:gradle:3.0.1"
+    compile "com.google.guava:guava:22.0"
+    compile "org.ow2.asm:asm-all:5.1"
+    compile project(':OkTransformer')
+}
+
+sourceCompatibility = "1.8"
+targetCompatibility = "1.8"
+
+repositories {
+    mavenCentral()
+}
+
+//设置maven deployer
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            //设置插件的GAV参数
+            pom.groupId = 'com.tellh'
+            pom.artifactId = 'access_inline'
+            pom.version = '1.0.0'
+            //文件发布到下面目录
+            repository(url: uri('../gradle_plugins'))
+        }
+    }
+}
