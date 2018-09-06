@@ -33,6 +33,7 @@ public class GlobalContext {
 
     public void init() {
         try {
+            Log.setLevel(Log.Level.DEBUG);
             Log.setImpl(FileLoggerImpl.of(String.join(File.separator, buildDir().getAbsolutePath(), "transform_log.txt")));
         } catch (IOException e) {
             throw new RuntimeException(e);

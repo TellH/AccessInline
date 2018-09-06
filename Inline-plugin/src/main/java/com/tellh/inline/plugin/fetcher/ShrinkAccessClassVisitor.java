@@ -1,6 +1,7 @@
 package com.tellh.inline.plugin.fetcher;
 
 import com.tellh.inline.plugin.log.Log;
+import com.tellh.inline.plugin.utils.TypeUtil;
 
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.FieldVisitor;
@@ -32,8 +33,13 @@ public class ShrinkAccessClassVisitor extends ClassVisitor {
     @Override
     public FieldVisitor visitField(int access, String name, String desc, String signature, Object value) {
         if (context.isAccessedMember(this.className, name, desc)) {
-            access = access & ~Opcodes.ACC_PRIVATE;
-            Log.d(String.format("Change Field( className = [%s], methodName = [%s], desc = [%s] ) access, from [%s] to private",
+            if (TypeUtil.isPrivate(access)) {
+                access = access & ~Opcodes.ACC_PRIVATE;
+            } else if (TypeUtil.isProtected(access) && TypeUtil.isStatic(access)) {
+                access = access & ~Opcodes.ACC_PROTECTED;
+                access = access | Opcodes.ACC_PUBLIC;
+            }
+            Log.d(String.format("Change Field( className = [%s], methodName = [%s], desc = [%s] ) access, from [%s] to be not private",
                     className, name, desc, String.valueOf(access)));
         }
         return super.visitField(access, name, desc, signature, value);
@@ -48,7 +54,7 @@ public class ShrinkAccessClassVisitor extends ClassVisitor {
         }
         if (context.isAccessedMember(this.className, name, desc)) {
             access = access & ~Opcodes.ACC_PRIVATE;
-            Log.d(String.format("Change method( className = [%s], methodName = [%s], desc = [%s] ) access, from [%s] to private",
+            Log.d(String.format("Change method( className = [%s], methodName = [%s], desc = [%s] ) access, from [%s] to be not private",
                     className, name, desc, String.valueOf(access)));
         }
         MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);

@@ -10,7 +10,6 @@ import com.tellh.inline.plugin.log.Log;
 import com.tellh.inline.plugin.utils.TypeUtil;
 
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class Context {
@@ -23,7 +22,7 @@ public class Context {
     // key is the access$ method identity, value is the access$ method code.
     private final Map<String, Access$MethodEntity> access$Methods = new ConcurrentHashMap<>(512);
 
-    private final Set<String> accessedMembers = ConcurrentHashMap.newKeySet(512);
+    private final Map<String, MemberEntity> accessedMembers = new ConcurrentHashMap<>(512);
 
     private MetaGraphGeneratorImpl generator = new MetaGraphGeneratorImpl();
 
@@ -38,11 +37,13 @@ public class Context {
     public MemberEntity addAccessedMembers(String owner, String name, String desc, boolean isField) {
         MemberEntity target;
         if (isField) {
+            Log.d(String.format("Found access$ method target field( owner = [%s], name = [%s], desc = [%s] )", owner, name, desc));
             target = new FieldEntity(MemberEntity.ACCESS_UNKNOWN, owner, name, desc);
         } else {
+            Log.d(String.format("Found access$ method target method( owner = [%s], name = [%s], desc = [%s] )", owner, name, desc));
             target = new MethodEntity(MemberEntity.ACCESS_UNKNOWN, owner, name, desc);
         }
-        accessedMembers.add(getKey(owner, name, desc));
+        accessedMembers.put(getKey(owner, name, desc), target);
         return target;
     }
 
@@ -66,8 +67,8 @@ public class Context {
             for (Access$MethodEntity entity : access$Methods.values()) {
                 MemberEntity target = entity.getTarget();
                 graph.confirmAccess(target);
-                // TODO: 2018/9/4 protected的非static成员暂时不内联了。。。
-                if (TypeUtil.isProtected(target.access()) && !TypeUtil.isStatic(target.access())) {
+                // TODO: 2018/9/4 protected的成员暂时不内联了。。。
+                if (TypeUtil.isProtected(target.access())) {
                     target.setAccess(MemberEntity.ACCESS_UNKNOWN);
                     skipCount++;
                 }
@@ -87,7 +88,7 @@ public class Context {
     }
 
     public boolean isAccessedMember(String owner, String name, String desc) {
-        return accessedMembers.contains(getKey(owner, name, desc));
+        return accessedMembers.containsKey(getKey(owner, name, desc));
     }
 
     public boolean isAccess$Method(String owner, String name, String desc) {
@@ -95,7 +96,7 @@ public class Context {
     }
 
     public boolean isPrivateAccessedMember(String owner, String name, String desc) {
-        Access$MethodEntity entity = access$Methods.get(getKey(owner, name, desc));
+        MemberEntity entity = accessedMembers.get(getKey(owner, name, desc));
         return entity != null && TypeUtil.isPrivate(entity.access());
     }
 }

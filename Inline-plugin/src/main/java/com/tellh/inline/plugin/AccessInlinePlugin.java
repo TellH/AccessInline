@@ -15,6 +15,6 @@ public class AccessInlinePlugin implements Plugin<Project> {
     }
 
     private String getSdkJarDir(AppExtension android) {
-        return String.join(File.separator, android.getSdkDirectory().getAbsolutePath(), "platforms", android.getCompileSdkVersion());
+        return String.join(File.separator, android.getSdkDirectory().getAbsolutePath(), "platforms", "android-27");
     }
 }
