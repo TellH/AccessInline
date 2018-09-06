@@ -34,7 +34,7 @@ public class ShrinkAccessClassVisitor extends ClassVisitor {
         if (context.isAccessedMember(this.className, name, desc)) {
             access = access & ~Opcodes.ACC_PRIVATE;
             Log.d(String.format("Change Field( className = [%s], methodName = [%s], desc = [%s] ) access, from [%s] to private",
-                    className, name, desc, access));
+                    className, name, desc, String.valueOf(access)));
         }
         return super.visitField(access, name, desc, signature, value);
     }
@@ -49,7 +49,7 @@ public class ShrinkAccessClassVisitor extends ClassVisitor {
         if (context.isAccessedMember(this.className, name, desc)) {
             access = access & ~Opcodes.ACC_PRIVATE;
             Log.d(String.format("Change method( className = [%s], methodName = [%s], desc = [%s] ) access, from [%s] to private",
-                    className, name, desc, access));
+                    className, name, desc, String.valueOf(access)));
         }
         MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
         return new AccessMethodVisitor(mv, this.className, name, desc);
@@ -84,7 +84,7 @@ public class ShrinkAccessClassVisitor extends ClassVisitor {
                 return;
             }
             Log.d(String.format("In method( className = [%s], methodName = [%s], desc = [%s] ) code " +
-                            ",Inline method( className = [%s], methodName = [%s], desc = [%s] ) invoke",
+                            ",inline method( className = [%s], methodName = [%s], desc = [%s] ) invoke",
                     this.owner, this.name, this.desc, owner, name, desc));
             List<AbstractInsnNode> insnNodes = access$Method.getInsnNodeList();
 
