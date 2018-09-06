@@ -5,7 +5,6 @@ import com.tellh.transformer.fetcher.ClassData;
 import com.tellh.transformer.fetcher.ClassTransformer;
 
 import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.tree.ClassNode;
 
 /**
  * Created by tlh on 2018/8/29.

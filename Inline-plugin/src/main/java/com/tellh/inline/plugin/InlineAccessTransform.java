@@ -10,6 +10,7 @@ import com.tellh.inline.plugin.fetcher.CollectClassInfoProcessor;
 import com.tellh.inline.plugin.fetcher.Context;
 import com.tellh.inline.plugin.fetcher.ShrinkAccessProcessor;
 import com.tellh.inline.plugin.log.Log;
+import com.tellh.inline.plugin.log.Timer;
 import com.tellh.transformer.TransformContext;
 import com.tellh.transformer.Transformer;
 import com.tellh.transformer.fetcher.ClassFetcher;
@@ -52,25 +53,28 @@ public class InlineAccessTransform extends Transform {
     public void transform(TransformInvocation transformInvocation) throws TransformException, InterruptedException, IOException {
         super.transform(transformInvocation);
         globalContext.init();
-        long start = System.currentTimeMillis();
+        Timer timer = new Timer();
         Transformer transformer = new Transformer(new TransformContext(transformInvocation));
         Context context = new Context();
-        transformer.traverseOnly(ClassFetcher.newInstance(new CollectClassInfoProcessor(context)));
 
-        long startAndroidJarProcess = System.currentTimeMillis();
+        timer.startRecord("PRE_PROCESS");
+        timer.startRecord("PROJECT_CLASS");
+        transformer.traverseOnly(ClassFetcher.newInstance(new CollectClassInfoProcessor(context)));
+        timer.stopRecord("PROJECT_CLASS", "Process project all .class files cost time = [%s ms]");
+
+        timer.startRecord("ANDROID");
         AndroidJarProcessor androidJarProcessor = new AndroidJarProcessor(context);
         transformer.traverseAndroidJar(globalContext.androidJar(), ClassFetcher.newInstance(androidJarProcessor));
-        Log.i(String.format("Process android jar cost time = [%s ms]", String.valueOf(System.currentTimeMillis() - startAndroidJarProcess)));
-
         Log.i(String.format("Collect android class count = [%s]", androidJarProcessor.getCount()));
+        timer.stopRecord("ANDROID", "Process android jar cost time = [%s ms]");
 
-        Log.i(String.format("Collect info cost time = [%s ms]", String.valueOf(System.currentTimeMillis() - start)));
+        timer.stopRecord("PRE_PROCESS", "Collect info cost time = [%s ms]");
         Log.i("access$ method count : " + context.methodCount());
-        long shrinkStart = System.currentTimeMillis();
 
+        timer.startRecord("PROCESS");
         transformer.resolve(ClassFetcher.newInstance(new ShrinkAccessProcessor(context)));
+        timer.stopRecord("PROCESS", "Shrink access$ cost time = [%s ms]");
 
-        Log.i(String.format("Shrink access$ cost time = [%s ms]", String.valueOf(System.currentTimeMillis() - shrinkStart)));
-        Log.i(String.format("Inline access$ transform total cost time = [%s ms]", String.valueOf(System.currentTimeMillis() - start)));
+        timer.record("Inline access$ transform total cost time = [%s ms]");
     }
 }

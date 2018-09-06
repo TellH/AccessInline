@@ -1,5 +1,7 @@
 package com.tellh.inline.plugin.fetcher;
 
+import com.tellh.inline.plugin.log.Log;
+
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.MethodVisitor;
@@ -31,6 +33,8 @@ public class ShrinkAccessClassVisitor extends ClassVisitor {
     public FieldVisitor visitField(int access, String name, String desc, String signature, Object value) {
         if (context.isAccessedMember(this.className, name, desc)) {
             access = access & ~Opcodes.ACC_PRIVATE;
+            Log.d(String.format("Change Field( className = [%s], methodName = [%s], desc = [%s] ) access, from [%s] to private",
+                    className, name, desc, access));
         }
         return super.visitField(access, name, desc, signature, value);
     }
@@ -39,26 +43,38 @@ public class ShrinkAccessClassVisitor extends ClassVisitor {
     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
         if (context.isAccess$Method(this.className, name, desc)) {
             // delete this method.
+            Log.d(String.format("Access$ method : className = [%s], methodName = [%s], desc = [%s]", className, name, desc));
             return null;
         }
         if (context.isAccessedMember(this.className, name, desc)) {
             access = access & ~Opcodes.ACC_PRIVATE;
+            Log.d(String.format("Change method( className = [%s], methodName = [%s], desc = [%s] ) access, from [%s] to private",
+                    className, name, desc, access));
         }
         MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
-        return new AccessMethodVisitor(mv);
+        return new AccessMethodVisitor(mv, this.className, name, desc);
     }
 
 
     class AccessMethodVisitor extends MethodVisitor {
+        private final String owner;
+        private final String name;
+        private final String desc;
 
-        AccessMethodVisitor(MethodVisitor mv) {
+        public AccessMethodVisitor(MethodVisitor mv, String owner, String name, String desc) {
             super(Opcodes.ASM5, mv);
+            this.owner = owner;
+            this.name = name;
+            this.desc = desc;
         }
 
         @Override
         public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
             // TODO: 2018/9/3 super调用时有问题。。。
             if (opcode == Opcodes.INVOKESPECIAL && context.isPrivateAccessedMember(owner, name, desc)) {
+                Log.d(String.format("In method( className = [%s], methodName = [%s], desc = [%s] ) code " +
+                                ",alter method( className = [%s], methodName = [%s], desc = [%s] ) invoke instruction, from INVOKESPECIAL to INVOKEVIRTUAL",
+                        this.owner, this.name, this.desc, owner, name, desc));
                 super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, owner, name, desc, itf);
                 return;
             }
@@ -67,6 +83,9 @@ public class ShrinkAccessClassVisitor extends ClassVisitor {
                 super.visitMethodInsn(opcode, owner, name, desc, itf);
                 return;
             }
+            Log.d(String.format("In method( className = [%s], methodName = [%s], desc = [%s] ) code " +
+                            ",Inline method( className = [%s], methodName = [%s], desc = [%s] ) invoke",
+                    this.owner, this.name, this.desc, owner, name, desc));
             List<AbstractInsnNode> insnNodes = access$Method.getInsnNodeList();
 
             for (AbstractInsnNode insnNode : insnNodes) {

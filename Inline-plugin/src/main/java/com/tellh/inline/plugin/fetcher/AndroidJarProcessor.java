@@ -9,7 +9,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class AndroidJarProcessor implements ClassTransformer {
     private final Context context;
-    private AtomicInteger count = new AtomicInteger(0);
+    private int count = 0;
 
     public AndroidJarProcessor(Context context) {
         this.context = context;
@@ -20,12 +20,12 @@ public class AndroidJarProcessor implements ClassTransformer {
         ClassReader cr = new ClassReader(raw);
         PreProcessClassVisitor cv = new PreProcessClassVisitor(context, true);
         cr.accept(cv, ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES | ClassReader.SKIP_CODE);
-        count.getAndIncrement();
+        count++;
         context.addEntity(cv.getEntity());
         return new ClassData(raw, relativePath);
     }
 
-    public AtomicInteger getCount() {
+    public int getCount() {
         return count;
     }
 }

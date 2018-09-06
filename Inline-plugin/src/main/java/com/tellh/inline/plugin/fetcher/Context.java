@@ -6,6 +6,7 @@ import com.tellh.inline.plugin.graph.Graph;
 import com.tellh.inline.plugin.graph.MemberEntity;
 import com.tellh.inline.plugin.graph.MetaGraphGeneratorImpl;
 import com.tellh.inline.plugin.graph.MethodEntity;
+import com.tellh.inline.plugin.log.Log;
 import com.tellh.inline.plugin.utils.TypeUtil;
 
 import java.util.Map;
@@ -60,6 +61,7 @@ public class Context {
     public Graph graph() {
         if (graph == null) {
             graph = generator.generate();
+            int skipCount = 0;
             // TODO: 2018/9/4 需要确认每一个accessedMembers的访问范围
             for (Access$MethodEntity entity : access$Methods.values()) {
                 MemberEntity target = entity.getTarget();
@@ -67,8 +69,10 @@ public class Context {
                 // TODO: 2018/9/4 protected的非static成员暂时不内联了。。。
                 if (TypeUtil.isProtected(target.access()) && !TypeUtil.isStatic(target.access())) {
                     target.setAccess(MemberEntity.ACCESS_UNKNOWN);
+                    skipCount++;
                 }
             }
+            Log.i("Skip Access$ inline count = " + skipCount);
             access$Methods.values().removeIf(entity -> {
                 MemberEntity target = entity.getTarget();
                 if (target.access() == MemberEntity.ACCESS_UNKNOWN) {
