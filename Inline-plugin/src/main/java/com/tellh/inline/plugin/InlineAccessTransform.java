@@ -57,8 +57,10 @@ public class InlineAccessTransform extends Transform {
         Context context = new Context();
         transformer.traverseOnly(ClassFetcher.newInstance(new CollectClassInfoProcessor(context)));
 
+        long startAndroidJarProcess = System.currentTimeMillis();
         AndroidJarProcessor androidJarProcessor = new AndroidJarProcessor(context);
         transformer.traverseAndroidJar(globalContext.androidJar(), ClassFetcher.newInstance(androidJarProcessor));
+        Log.i(String.format("Process android jar cost time = [%s ms]", String.valueOf(System.currentTimeMillis() - startAndroidJarProcess)));
 
         Log.i(String.format("Collect android class count = [%s]", androidJarProcessor.getCount()));
 

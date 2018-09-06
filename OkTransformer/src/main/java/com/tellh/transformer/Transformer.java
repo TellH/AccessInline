@@ -131,27 +131,7 @@ public class Transformer {
     }
 
     public void traverseAndroidJar(File jar, ContentFetcher... fetchers) throws IOException, InterruptedException {
-        List<Future<Void>> tasks = new ExtractJarContentTask(jar).call()
-                .stream()
-                .map(classData -> new ClassVisitTask(classData, fetchers))
-                .map(t -> service.submit(t))
-                .collect(Collectors.toList());
-
-        try {
-            // block until all task has finish.
-            for (Future<Void> future : tasks) {
-                future.get();
-            }
-        } catch (ExecutionException e) {
-            Throwable cause = e.getCause();
-            if (cause instanceof IOException) {
-                throw (IOException) cause;
-            } else if (cause instanceof InterruptedException) {
-                throw (InterruptedException) cause;
-            } else {
-                throw new RuntimeException(e.getCause());
-            }
-        }
+        new ExtractJarContentTask(jar, Arrays.asList(fetchers)).call();
     }
 
     public void addFile(byte[] data, String relativePath, Set<QualifiedContent.ContentType> contentTypes) throws IOException {
