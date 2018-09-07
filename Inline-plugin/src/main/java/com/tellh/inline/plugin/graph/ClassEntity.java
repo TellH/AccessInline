@@ -4,9 +4,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * Created by gengwanpeng on 17/5/11.
- */
 public class ClassEntity {
 
     public int access;

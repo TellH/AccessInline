@@ -3,9 +3,6 @@ package com.tellh.inline.plugin.graph;
 import java.util.List;
 
 
-/**
- * Created by gengwanpeng on 17/5/2.
- */
 public abstract class Node {
 
     public Node(ClassEntity entity, ClassNode parent, List<InterfaceNode> interfaces) {

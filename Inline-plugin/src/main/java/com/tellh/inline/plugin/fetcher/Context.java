@@ -9,10 +9,16 @@ import com.tellh.inline.plugin.graph.MethodEntity;
 import com.tellh.inline.plugin.log.Log;
 import com.tellh.inline.plugin.utils.TypeUtil;
 
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.MethodInsnNode;
+
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class Context {
+    private AtomicInteger deleteAccess$Count = new AtomicInteger(0);
     private static final String SEPARATOR = "#";
 
     private static String getKey(String owner, String name, String desc) {
@@ -62,27 +68,30 @@ public class Context {
     public Graph graph() {
         if (graph == null) {
             graph = generator.generate();
-            int skipCount = 0;
             // TODO: 2018/9/4 需要确认每一个accessedMembers的访问范围
             for (Access$MethodEntity entity : access$Methods.values()) {
                 MemberEntity target = entity.getTarget();
-                graph.confirmAccess(target);
-                // TODO: 2018/9/4 protected的成员暂时不内联了。。。
-                if (TypeUtil.isProtected(target.access())) {
-                    target.setAccess(MemberEntity.ACCESS_UNKNOWN);
-                    skipCount++;
-                }
+                graph.confirmAccess(target)
+                        .forEach(m -> accessedMembers.put(getKey(m.className(), m.name(), m.desc()), m));
             }
-            Log.i("Skip Access$ inline count = " + skipCount);
-            access$Methods.values().removeIf(entity -> {
+            for (Map.Entry<String, Access$MethodEntity> entry : access$Methods.entrySet()) {
+                Access$MethodEntity entity = entry.getValue();
                 MemberEntity target = entity.getTarget();
                 if (target.access() == MemberEntity.ACCESS_UNKNOWN) {
+                    access$Methods.remove(entry.getKey());
                     accessedMembers.remove(getKey(target.className(), target.name(), target.desc()));
-                    return true;
-                } else {
-                    return false;
+                } else if (TypeUtil.isPrivate(target.access())) {
+                    for (AbstractInsnNode insnNode : entity.getInsnNodeList()) {
+                        if (insnNode instanceof MethodInsnNode) {
+                            MethodInsnNode methodInsnNode = (MethodInsnNode) insnNode;
+                            if (methodInsnNode.getOpcode() == Opcodes.INVOKESPECIAL) {
+                                methodInsnNode.setOpcode(Opcodes.INVOKEVIRTUAL);
+                            }
+                            break;
+                        }
+                    }
                 }
-            });
+            }
         }
         return graph;
     }

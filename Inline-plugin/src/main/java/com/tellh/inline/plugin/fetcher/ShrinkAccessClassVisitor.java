@@ -35,7 +35,7 @@ public class ShrinkAccessClassVisitor extends ClassVisitor {
         if (context.isAccessedMember(this.className, name, desc)) {
             if (TypeUtil.isPrivate(access)) {
                 access = access & ~Opcodes.ACC_PRIVATE;
-            } else if (TypeUtil.isProtected(access) && TypeUtil.isStatic(access)) {
+            } else if (TypeUtil.isProtected(access)) {
                 access = access & ~Opcodes.ACC_PROTECTED;
                 access = access | Opcodes.ACC_PUBLIC;
             }
@@ -53,7 +53,12 @@ public class ShrinkAccessClassVisitor extends ClassVisitor {
             return null;
         }
         if (context.isAccessedMember(this.className, name, desc)) {
-            access = access & ~Opcodes.ACC_PRIVATE;
+            if (TypeUtil.isPrivate(access)) {
+                access = access & ~Opcodes.ACC_PRIVATE;
+            } else if (TypeUtil.isProtected(access)) {
+                access = access & ~Opcodes.ACC_PROTECTED;
+                access = access | Opcodes.ACC_PUBLIC;
+            }
             Log.d(String.format("Change method( className = [%s], methodName = [%s], desc = [%s] ) access, from [%s] to be not private",
                     className, name, desc, String.valueOf(access)));
         }
@@ -76,11 +81,12 @@ public class ShrinkAccessClassVisitor extends ClassVisitor {
 
         @Override
         public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
-            // TODO: 2018/9/3 super调用时有问题。。。
+            // TODO: 2018/9/3 super调用时有问题。。。待check。。。
             if (opcode == Opcodes.INVOKESPECIAL && context.isPrivateAccessedMember(owner, name, desc)) {
                 Log.d(String.format("In method( className = [%s], methodName = [%s], desc = [%s] ) code " +
                                 ",alter method( className = [%s], methodName = [%s], desc = [%s] ) invoke instruction, from INVOKESPECIAL to INVOKEVIRTUAL",
                         this.owner, this.name, this.desc, owner, name, desc));
+                // This method access was changed to be public
                 super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, owner, name, desc, itf);
                 return;
             }

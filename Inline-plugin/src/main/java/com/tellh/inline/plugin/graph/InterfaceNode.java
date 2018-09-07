@@ -3,9 +3,6 @@ package com.tellh.inline.plugin.graph;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * Created by gengwanpeng on 17/5/3.
- */
 public class InterfaceNode extends Node {
 
     public List<InterfaceNode> children = Collections.emptyList();

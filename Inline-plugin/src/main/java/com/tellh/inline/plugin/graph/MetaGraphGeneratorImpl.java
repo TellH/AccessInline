@@ -8,9 +8,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-/**
- * Created by gengwanpeng on 17/4/26.
- */
 public class MetaGraphGeneratorImpl implements MetaGraphGenerator {
 
     // Key is class name. value is class node.

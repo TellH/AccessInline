@@ -4,12 +4,13 @@ import com.tellh.inline.plugin.utils.TypeUtil;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 
 
 /**
- * Created by gengwanpeng on 17/5/5.
  * Class dependency graph.
  */
 public class Graph {
@@ -76,26 +77,52 @@ public class Graph {
         return nodeMap.get(className);
     }
 
-    public void confirmAccess(MemberEntity target) {
+    public List<MemberEntity> confirmAccess(MemberEntity target) {
+        List<MemberEntity> accessShouldBeChangeList = new ArrayList<>();
         Node node = get(target.ClassName);
+        // backtrace to super
         while (node != null) {
             ClassEntity classEntity = node.entity;
-            if (target instanceof MethodEntity) {
-                for (MethodEntity method : classEntity.methods) {
-                    if (target.name().equals(method.name()) && target.desc().equals(method.desc())) {
-                        target.setAccess(method.access());
-                        return;
+            List<? extends MemberEntity> members = target instanceof MethodEntity ? classEntity.methods : classEntity.fields;
+            for (MemberEntity m : members) {
+                if (target.name().equals(m.name()) && target.desc().equals(m.desc())) {
+                    // found it!
+                    // if the class in android.jar, there is no way to change the access.
+                    if (!classEntity.fromAndroid) {
+                        target.setAccess(m.access());
+                        accessShouldBeChangeList.add(m);
+                        // forwards to children to find override methods
+                        if (m instanceof MethodEntity && !TypeUtil.isStatic(m.access())) {
+                            accessShouldBeChangeList.addAll(collectOverrideMethods(m, accessShouldBeChangeList));
+                        }
                     }
-                }
-            } else if (target instanceof FieldEntity) {
-                for (FieldEntity field : classEntity.fields) {
-                    if (target.name().equals(field.name()) && target.desc().equals(field.desc())) {
-                        target.setAccess(field.access());
-                        return;
+                    if (TypeUtil.isPublic(m.access())) {
+                        target.setAccess(m.access());
                     }
+                    return accessShouldBeChangeList;
                 }
             }
             node = node.parent;
         }
+        return accessShouldBeChangeList;
+    }
+
+    public List<MemberEntity> collectOverrideMethods(MemberEntity target, List<MemberEntity> list) {
+        ClassNode classNode = (ClassNode) get(target.ClassName);
+        // bfs
+        Queue<ClassNode> handleQ = new LinkedList<>();
+        classNode.children.forEach(handleQ::offer);
+        while (!handleQ.isEmpty()) {
+            ClassNode node = handleQ.poll();
+            ClassEntity classEntity = node.entity;
+            for (MethodEntity m : classEntity.methods) {
+                if (m.name().equals(target.name()) && m.desc().equals(target.desc())) {
+                    list.add(m);
+                    break;
+                }
+            }
+            node.children.forEach(handleQ::offer);
+        }
+        return list;
     }
 }

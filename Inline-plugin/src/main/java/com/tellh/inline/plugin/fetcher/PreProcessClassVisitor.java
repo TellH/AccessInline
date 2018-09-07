@@ -88,9 +88,9 @@ public class PreProcessClassVisitor extends ClassVisitor {
 
         @Override
         public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
-            if (opcode == Opcodes.INVOKESPECIAL) {
-                opcode = Opcodes.INVOKEVIRTUAL;
-            }
+//            if (opcode == Opcodes.INVOKESPECIAL) {
+//                opcode = Opcodes.INVOKEVIRTUAL;
+//            }
             refinedInsns.add(new MethodInsnNode(opcode, owner, name, desc, itf));
             access$MethodEntity.setTarget(context.addAccessedMembers(owner, name, desc, false));
         }
