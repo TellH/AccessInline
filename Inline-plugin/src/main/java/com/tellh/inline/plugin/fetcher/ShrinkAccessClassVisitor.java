@@ -90,6 +90,10 @@ public class ShrinkAccessClassVisitor extends ClassVisitor {
                 super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, owner, name, desc, itf);
                 return;
             }
+            if (opcode != Opcodes.INVOKESTATIC) {
+                super.visitMethodInsn(opcode, owner, name, desc, itf);
+                return;
+            }
             Access$MethodEntity access$Method = context.getAccess$Method(owner, name, desc);
             if (access$Method == null) {
                 super.visitMethodInsn(opcode, owner, name, desc, itf);

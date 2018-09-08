@@ -55,7 +55,7 @@ public class PreProcessClassVisitor extends ClassVisitor {
     @Override
     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
         entity.methods.add(new MethodEntity(access, entity.name, name, desc));
-        if (!fromAndroidSDK && TypeUtil.isSynthetic(access) && name.startsWith("access$")) {
+        if (!fromAndroidSDK && TypeUtil.isSynthetic(access) && TypeUtil.isStatic(access) && name.startsWith("access$")) {
             Access$MethodEntity access$MethodEntity = context.addAccess$Method(entity.name, name, desc);
             return new RefineAccess$MethodVisitor(context, access$MethodEntity);
         }
