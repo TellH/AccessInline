@@ -5,6 +5,7 @@ import com.tellh.inline.plugin.graph.MethodEntity;
 
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.MethodInsnNode;
 
 import java.util.List;
 
@@ -30,5 +31,14 @@ public class Access$MethodEntity extends MethodEntity {
 
     public void setInsnNodeList(List<AbstractInsnNode> insnNodeList) {
         this.insnNodeList = insnNodeList;
+    }
+
+    public MethodInsnNode getMethodInsn() {
+        for (AbstractInsnNode insnNode : insnNodeList) {
+            if (insnNode instanceof MethodInsnNode) {
+                return (MethodInsnNode) insnNode;
+            }
+        }
+        return null;
     }
 }

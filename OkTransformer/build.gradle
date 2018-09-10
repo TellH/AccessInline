@@ -21,6 +21,7 @@ uploadArchives {
             pom.version = '1.0.0'
             //文件发布到下面目录
             repository(url: uri('../gradle_plugins'))
+//            repository(url: uri('/Users/tlh/Desktop/code/aweme/gradle_plugins'))
         }
     }
 }

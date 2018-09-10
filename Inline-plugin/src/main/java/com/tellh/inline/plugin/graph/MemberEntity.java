@@ -1,6 +1,7 @@
 package com.tellh.inline.plugin.graph;
 
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class MemberEntity {
     public static final int ACCESS_UNKNOWN = -1;
@@ -8,12 +9,14 @@ public abstract class MemberEntity {
     protected String ClassName;
     protected String name;
     protected String desc;
+    private final AtomicInteger referenceCount;
 
     public MemberEntity(int access, String className, String name, String desc) {
         this.access = access;
         ClassName = className;
         this.name = name;
         this.desc = desc;
+        referenceCount = new AtomicInteger(1);
     }
 
     public int access() {
@@ -34,6 +37,18 @@ public abstract class MemberEntity {
 
     public void setAccess(int access) {
         this.access = access;
+    }
+
+    public void inc() {
+        referenceCount.getAndIncrement();
+    }
+
+    public void dec() {
+        referenceCount.getAndDecrement();
+    }
+
+    public boolean isFree() {
+        return referenceCount.get() <= 0;
     }
 
     @Override

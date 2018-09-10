@@ -21,9 +21,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * Created by gengwanpeng on 17/4/27.
- */
 public class PreProcessClassVisitor extends ClassVisitor {
 
     private ClassEntity entity;

@@ -5,36 +5,36 @@ import android.util.Log;
 public class Derive extends OuterClass {
 
     public static final String TAG = Derive.class.getSimpleName();
+    protected String protectedField = TAG;
+
+    public Derive() {
+        Inner inner = new Inner();
+        inner.invokeProtectedMethodFromSuper();
+        inner.getProtectedFieldFromSuper();
+        inner.invokeStaticMethod();
+    }
 
     @Override
     protected void hehe() {
-        super.hehe();
         Log.d(TAG, "hehe() called");
-        enen();
-        new Inner().run();
-        get();
-    }
-
-    private void enen() {
-        Log.d(TAG, "enen() called");
-    }
-
-    private BaseConsumer get() {
-        return new BaseConsumer() {
-            @Override
-            public void onProgressUpdateImpl(float progress) {
-                Derive.this.p();
-            }
-        };
     }
 
     class Inner {
-        void run() {
-            p();
+        void invokeProtectedMethodFromSuper() {
+            Derive.super.hehe();
+            Derive.this.p();
+            Derive.super.publicMethodInSuper();
+        }
+
+        void invokeStaticMethod() {
+            protectedStatic();
+            publicStatic();
+        }
+
+        void getProtectedFieldFromSuper() {
+            Log.d(TAG, "protectedField in super: " + Derive.super.protectedField);
+            Log.d(TAG, "protectedField in subClass: " + Derive.this.protectedField);
         }
     }
 
-    interface BaseConsumer {
-        void onProgressUpdateImpl(float progress);
-    }
 }

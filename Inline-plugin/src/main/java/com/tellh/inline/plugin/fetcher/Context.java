@@ -10,15 +10,12 @@ import com.tellh.inline.plugin.log.Log;
 import com.tellh.inline.plugin.utils.TypeUtil;
 
 import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class Context {
-    private AtomicInteger deleteAccess$Count = new AtomicInteger(0);
     private static final String SEPARATOR = "#";
 
     private static String getKey(String owner, String name, String desc) {
@@ -40,16 +37,21 @@ public class Context {
         return entity;
     }
 
-    public MemberEntity addAccessedMembers(String owner, String name, String desc, boolean isField) {
-        MemberEntity target;
-        if (isField) {
-            Log.d(String.format("Found access$ method target field( owner = [%s], name = [%s], desc = [%s] )", owner, name, desc));
-            target = new FieldEntity(MemberEntity.ACCESS_UNKNOWN, owner, name, desc);
+    public synchronized MemberEntity addAccessedMembers(String owner, String name, String desc, boolean isField) {
+        String targetKey = getKey(owner, name, desc);
+        MemberEntity target = accessedMembers.get(targetKey);
+        if (target == null) {
+            if (isField) {
+                Log.d(String.format("Found access$ method target field( owner = [%s], name = [%s], desc = [%s] )", owner, name, desc));
+                target = new FieldEntity(MemberEntity.ACCESS_UNKNOWN, owner, name, desc);
+            } else {
+                Log.d(String.format("Found access$ method target method( owner = [%s], name = [%s], desc = [%s] )", owner, name, desc));
+                target = new MethodEntity(MemberEntity.ACCESS_UNKNOWN, owner, name, desc);
+            }
+            accessedMembers.put(targetKey, target);
         } else {
-            Log.d(String.format("Found access$ method target method( owner = [%s], name = [%s], desc = [%s] )", owner, name, desc));
-            target = new MethodEntity(MemberEntity.ACCESS_UNKNOWN, owner, name, desc);
+            target.inc();
         }
-        accessedMembers.put(getKey(owner, name, desc), target);
         return target;
     }
 
@@ -69,25 +71,46 @@ public class Context {
         if (graph == null) {
             graph = generator.generate();
             // TODO: 2018/9/4 需要确认每一个accessedMembers的访问范围
-            for (Access$MethodEntity entity : access$Methods.values()) {
-                MemberEntity target = entity.getTarget();
-                graph.confirmAccess(target)
-                        .forEach(m -> accessedMembers.put(getKey(m.className(), m.name(), m.desc()), m));
-            }
             for (Map.Entry<String, Access$MethodEntity> entry : access$Methods.entrySet()) {
                 Access$MethodEntity entity = entry.getValue();
                 MemberEntity target = entity.getTarget();
                 if (target.access() == MemberEntity.ACCESS_UNKNOWN) {
+                    graph.confirmAccess(target).forEach(m -> {
+                        String targetKey = getKey(m.className(), m.name(), m.desc());
+                        MemberEntity existMember = accessedMembers.get(targetKey);
+                        if (existMember == null) {
+                            accessedMembers.put(targetKey, m);
+                        } else {
+                            existMember.inc();
+                        }
+                    });
+                }
+                String targetKey = getKey(target.className(), target.name(), target.desc());
+                if (target.access() == MemberEntity.ACCESS_UNKNOWN) {
                     access$Methods.remove(entry.getKey());
-                    accessedMembers.remove(getKey(target.className(), target.name(), target.desc()));
-                } else if (TypeUtil.isPrivate(target.access())) {
-                    for (AbstractInsnNode insnNode : entity.getInsnNodeList()) {
-                        if (insnNode instanceof MethodInsnNode) {
-                            MethodInsnNode methodInsnNode = (MethodInsnNode) insnNode;
-                            if (methodInsnNode.getOpcode() == Opcodes.INVOKESPECIAL) {
-                                methodInsnNode.setOpcode(Opcodes.INVOKEVIRTUAL);
+                    accessedMembers.remove(targetKey);
+                    Log.d(String.format("Skip inline access$ method (owner = [%s], name = [%s], desc = [%s])",
+                            entity.className(), entity.name(), entity.desc()));
+                    Log.d(String.format("Skip inline access to %s (owner = [%s], name = [%s], desc = [%s])",
+                            target instanceof FieldEntity ? FieldEntity.class.getSimpleName() : MethodEntity.class.getSimpleName(),
+                            target.className(), target.name(), target.desc()));
+                } else {
+                    MethodInsnNode methodInsn = entity.getMethodInsn();
+                    if (methodInsn != null && methodInsn.getOpcode() == Opcodes.INVOKESPECIAL) {
+                        if (TypeUtil.isPrivate(target.access())) {
+                            methodInsn.setOpcode(Opcodes.INVOKEVIRTUAL);
+                        } else {
+                            // Skip the super invoke...
+                            access$Methods.remove(entry.getKey());
+                            target.dec();
+                            if (target.isFree()) {
+                                accessedMembers.remove(targetKey);
+                                Log.d(String.format("Skip inline access to %s (owner = [%s], name = [%s], desc = [%s])",
+                                        target instanceof FieldEntity ? FieldEntity.class.getSimpleName() : MethodEntity.class.getSimpleName(),
+                                        target.className(), target.name(), target.desc()));
                             }
-                            break;
+                            Log.d(String.format("Skip inline access$ method (owner = [%s], name = [%s], desc = [%s])",
+                                    entity.className(), entity.name(), entity.desc()));
                         }
                     }
                 }
