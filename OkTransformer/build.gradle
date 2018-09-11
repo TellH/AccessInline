@@ -1,7 +1,8 @@
 apply plugin: 'java-library'
 apply plugin: 'maven'
-group 'com.tellh'
-version '1.0.0'
+apply plugin: 'com.novoda.bintray-release'
+group "$upload_group"
+version "$upload_version"
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     compile gradleApi()
@@ -12,16 +13,22 @@ dependencies {
 
 sourceCompatibility = "1.8"
 targetCompatibility = "1.8"
+publish {
+    userOrg = 'tellh'
+    groupId = "$upload_group"
+    artifactId = 'oktransformer'
+    publishVersion = "$upload_version"
+}
+
 uploadArchives {
     repositories {
         mavenDeployer {
             //设置插件的GAV参数
-            pom.groupId = 'com.tellh'
-            pom.artifactId = 'inline_transformer'
-            pom.version = '1.0.0'
+            pom.groupId = "$upload_group"
+            pom.artifactId = 'oktransformer'
+            pom.version = "$upload_version"
             //文件发布到下面目录
             repository(url: uri('../gradle_plugins'))
-//            repository(url: uri('/Users/tlh/Desktop/code/aweme/gradle_plugins'))
         }
     }
 }

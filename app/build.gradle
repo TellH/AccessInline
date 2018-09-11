@@ -30,15 +30,3 @@ dependencies {
 access_inline {
     logLevel "DEBUG"
 }
-
-buildscript {
-    repositories {
-        maven {
-            url uri('../gradle_plugins')
-        }
-        jcenter()
-    }
-    dependencies {
-        classpath "com.tellh:access_inline:1.0.0"
-    }
-}
