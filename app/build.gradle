@@ -1,5 +1,5 @@
 apply plugin: 'com.android.application'
-
+apply plugin: 'com.tellh.access_inline'
 android {
     compileSdkVersion 27
     defaultConfig {
@@ -27,7 +27,10 @@ dependencies {
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
 }
 
-apply plugin: 'com.tellh.access_inline'
+access_inline {
+    logLevel "DEBUG"
+}
+
 buildscript {
     repositories {
         maven {
