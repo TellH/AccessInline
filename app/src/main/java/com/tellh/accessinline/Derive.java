@@ -15,14 +15,15 @@ public class Derive extends OuterClass {
     }
 
     @Override
-    protected void hehe() {
+    protected String hehe() {
         Log.d(TAG, "hehe() called");
+        return TAG;
     }
 
     class Inner {
         void invokeProtectedMethodFromSuper() {
-            Derive.super.hehe();
-            Derive.this.p();
+            assert Derive.super.hehe().equals(OuterClass.TAG);
+            assert Derive.this.p().equals(TAG);
             Derive.super.publicMethodInSuper();
         }
 
@@ -32,7 +33,9 @@ public class Derive extends OuterClass {
         }
 
         void getProtectedFieldFromSuper() {
+            assert Derive.super.protectedField.equals(OuterClass.TAG);
             Log.d(TAG, "protectedField in super: " + Derive.super.protectedField);
+            assert Derive.this.protectedField.equals(TAG);
             Log.d(TAG, "protectedField in subClass: " + Derive.this.protectedField);
         }
     }

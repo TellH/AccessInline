@@ -2,6 +2,7 @@ package com.tellh.accessinline;
 
 import android.util.Log;
 
+import com.tellh.accessinline.other.Ancestor0;
 import com.tellh.accessinline.other.SuperClassInOtherPackage;
 
 public class SubClass extends SuperClassInOtherPackage {
@@ -17,6 +18,7 @@ public class SubClass extends SuperClassInOtherPackage {
     class Inner {
         void invokeProtectedMethodFromSuper() {
             protectedMethod();
+            assert call().equals(Ancestor0.TAG);
         }
 
         void getProtectedFieldFromSuper() {

@@ -2,7 +2,9 @@ package com.tellh.accessinline;
 
 import android.util.Log;
 
-public class OuterClass {
+import com.tellh.accessinline.other.Ancestor0;
+
+public class OuterClass extends Ancestor0 {
     public static final String TAG = OuterClass.class.getSimpleName();
     private int a = 10;
     private double d = 10;
@@ -16,8 +18,9 @@ public class OuterClass {
     private void enen() {
     }
 
-    protected void hehe() {
+    protected String hehe() {
         Log.d(TAG, "hehe() called. ");
+        return TAG;
     }
 
     public void publicMethodInSuper() {
@@ -32,10 +35,12 @@ public class OuterClass {
         inner.getA();
         inner.getD();
         inner.getStr();
+        inner.callOutside();
     }
 
-    protected void p() {
+    protected String p() {
         Log.d(TAG, "p was called.");
+        return TAG;
     }
 
     protected static void protectedStatic() {
@@ -44,6 +49,11 @@ public class OuterClass {
 
     public static void publicStatic() {
         Log.d(TAG, "publicStatic() called");
+    }
+
+    @Override
+    protected String call() {
+        return TAG;
     }
 
     class Inner {
@@ -72,6 +82,10 @@ public class OuterClass {
         private void he() {
             Log.d(TAG, "he() called");
             hehe();
+        }
+
+        private void callOutside() {
+            assert call().equals(TAG);
         }
     }
 }

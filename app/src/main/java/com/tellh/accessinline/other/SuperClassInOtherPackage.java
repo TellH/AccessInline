@@ -2,7 +2,7 @@ package com.tellh.accessinline.other;
 
 import android.util.Log;
 
-public class SuperClassInOtherPackage {
+public class SuperClassInOtherPackage extends Ancestor0{
     public static final String TAG = SuperClassInOtherPackage.class.getSimpleName();
 
     protected String protectedField = TAG;
