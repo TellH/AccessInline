@@ -12,6 +12,8 @@ import com.tellh.inline.plugin.utils.TypeUtil;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.MethodInsnNode;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -71,29 +73,25 @@ public class Context {
         if (graph == null) {
             graph = generator.generate();
             // TODO: 2018/9/4 需要确认每一个accessedMembers的访问范围
+            Map<MemberEntity, List<MemberEntity>> overrideMap = new HashMap<>();
             for (Map.Entry<String, Access$MethodEntity> entry : access$Methods.entrySet()) {
                 Access$MethodEntity entity = entry.getValue();
                 MemberEntity target = entity.getTarget();
                 if (target.access() == MemberEntity.ACCESS_UNKNOWN) {
-                    graph.confirmAccess(target).forEach(m -> {
-                        String targetKey = getKey(m.className(), m.name(), m.desc());
-                        MemberEntity existMember = accessedMembers.get(targetKey);
-                        if (existMember == null) {
-                            accessedMembers.put(targetKey, m);
-                        } else {
-                            existMember.inc();
-                        }
-                    });
+                    List<MemberEntity> overrideMembers = graph.confirmAccess(target);
+                    if (overrideMembers != null && !overrideMembers.isEmpty()) {
+                        overrideMap.putIfAbsent(target, overrideMembers);
+                    }
                 }
+                boolean shouldSkip = false;
                 String targetKey = getKey(target.className(), target.name(), target.desc());
                 if (target.access() == MemberEntity.ACCESS_UNKNOWN) {
                     access$Methods.remove(entry.getKey());
                     accessedMembers.remove(targetKey);
-                    Log.d(String.format("Skip inline access$ method (owner = [%s], name = [%s], desc = [%s])",
-                            entity.className(), entity.name(), entity.desc()));
                     Log.d(String.format("Skip inline access to %s (owner = [%s], name = [%s], desc = [%s])",
                             target instanceof FieldEntity ? FieldEntity.class.getSimpleName() : MethodEntity.class.getSimpleName(),
                             target.className(), target.name(), target.desc()));
+                    shouldSkip = true;
                 } else {
                     MethodInsnNode methodInsn = entity.getMethodInsn();
                     if (methodInsn != null && methodInsn.getOpcode() == Opcodes.INVOKESPECIAL) {
@@ -101,6 +99,7 @@ public class Context {
                             methodInsn.setOpcode(Opcodes.INVOKEVIRTUAL);
                         } else {
                             // Skip the super invoke...
+                            shouldSkip = true;
                             access$Methods.remove(entry.getKey());
                             target.dec();
                             if (target.isFree()) {
@@ -109,9 +108,24 @@ public class Context {
                                         target instanceof FieldEntity ? FieldEntity.class.getSimpleName() : MethodEntity.class.getSimpleName(),
                                         target.className(), target.name(), target.desc()));
                             }
-                            Log.d(String.format("Skip inline access$ method (owner = [%s], name = [%s], desc = [%s])",
-                                    entity.className(), entity.name(), entity.desc()));
                         }
+                    }
+                }
+                if (shouldSkip) {
+                    Log.d(String.format("Skip inline access$ method (owner = [%s], name = [%s], desc = [%s])",
+                            entity.className(), entity.name(), entity.desc()));
+                } else {
+                    List<MemberEntity> overrideMembers = overrideMap.get(target);
+                    if (overrideMembers != null) {
+                        overrideMembers.forEach(m -> {
+                            String key = getKey(m.className(), m.name(), m.desc());
+                            MemberEntity existMember = accessedMembers.get(key);
+                            if (existMember == null) {
+                                accessedMembers.put(key, m);
+                            } else {
+                                existMember.inc();
+                            }
+                        });
                     }
                 }
             }

@@ -1,5 +1,6 @@
 package com.tellh.inline.plugin.fetcher;
 
+import com.tellh.inline.plugin.graph.FieldEntity;
 import com.tellh.inline.plugin.graph.MemberEntity;
 import com.tellh.inline.plugin.graph.MethodEntity;
 
@@ -34,6 +35,9 @@ public class Access$MethodEntity extends MethodEntity {
     }
 
     public MethodInsnNode getMethodInsn() {
+        if (target instanceof FieldEntity) {
+            return null;
+        }
         for (AbstractInsnNode insnNode : insnNodeList) {
             if (insnNode instanceof MethodInsnNode) {
                 return (MethodInsnNode) insnNode;
