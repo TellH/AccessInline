@@ -8,9 +8,6 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 
 
-/**
- * Created by gengwanpeng on 17/5/17.
- */
 public abstract class BaseLogger implements ILogger {
 
     @Override

@@ -32,10 +32,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 
-
-/**
- * Created by gengwanpeng on 16/7/6.
- */
 public class FileLoggerImpl extends BaseLogger {
 
     public static FileLoggerImpl of(String fileName) throws IOException {

@@ -24,10 +24,6 @@ package com.tellh.inline.plugin.log.Impl;
 import org.gradle.api.logging.LogLevel;
 import org.gradle.api.logging.Logger;
 import org.gradle.api.logging.Logging;
-
-/**
- * Created by gengwanpeng on 16/7/6.
- */
 public class SystemLoggerImpl extends BaseLogger {
 
     private final Logger logger = Logging.getLogger("lancet");

@@ -25,9 +25,6 @@ package com.tellh.inline.plugin.log;
 import com.tellh.inline.plugin.log.Impl.SystemLoggerImpl;
 
 
-/**
- * Created by gengwanpeng on 16/7/6.
- */
 public class Log {
     private static ILogger logger = new SystemLoggerImpl();
     private static Level level = Level.INFO;

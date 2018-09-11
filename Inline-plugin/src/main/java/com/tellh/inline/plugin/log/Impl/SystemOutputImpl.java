@@ -25,9 +25,6 @@ import org.gradle.api.logging.LogLevel;
 
 import java.io.PrintStream;
 
-/**
- * Created by gengwanpeng on 16/7/6.
- */
 public class SystemOutputImpl extends BaseLogger {
 
     @Override
