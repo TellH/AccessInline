@@ -40,15 +40,9 @@ However, This compiler syntactic sugar would substantially increase the method c
 ## How to use it
 
 ```groovy
-    repositories {
-        maven {
-            url('https://dl.bintray.com/tellh/maven')
-        }
-    }
     dependencies {
         classpath "com.tellh:inline-plugin:1.0.0-beta"
     }
-
 
 apply plugin: 'com.tellh.access_inline'
 ```
