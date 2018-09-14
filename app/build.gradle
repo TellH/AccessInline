@@ -29,4 +29,5 @@ dependencies {
 
 access_inline {
     logLevel "DEBUG"
+    enableInDebug false
 }

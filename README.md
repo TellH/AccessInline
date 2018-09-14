@@ -1,3 +1,6 @@
+[![License](https://img.shields.io/badge/license-Apache%202-green.svg)](https://www.apache.org/licenses/LICENSE-2.0)
+[![Download](https://api.bintray.com/packages/tellh/maven/inline-plugin/images/download.svg) ](https://bintray.com/tellh/maven/inline-plugin/_latestVersion)
+
 # AccessInline
 An Android gradle plugin to inline methods that start with the prefix 'access$' in bytecode.
 
@@ -41,10 +44,14 @@ However, This compiler syntactic sugar would substantially increase the method c
 
 ```groovy
     dependencies {
-        classpath "com.tellh:inline-plugin:1.0.0-beta"
+        classpath "com.tellh:inline-plugin:1.0.0-beta2"
     }
 
 apply plugin: 'com.tellh.access_inline'
+access_inline {
+    logLevel "INFO"
+    enableInDebug false
+}
 ```
 
 

@@ -9,6 +9,7 @@ import org.gradle.api.Project;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.List;
 
 public class GlobalContext {
     private Project project;
@@ -46,5 +47,20 @@ public class GlobalContext {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public boolean isReleaseBuild() {
+        List<String> taskNames = project.getGradle().getStartParameter().getTaskNames();
+        for (int index = 0; index < taskNames.size(); ++index) {
+            String taskName = taskNames.get(index);
+            if (taskName.toLowerCase().contains("release")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean enable() {
+        return accessInlineExtension.isEnableInDebug() || isReleaseBuild();
     }
 }

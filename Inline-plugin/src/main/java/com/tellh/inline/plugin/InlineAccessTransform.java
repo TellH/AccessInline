@@ -58,22 +58,30 @@ public class InlineAccessTransform extends Transform {
         Context context = new Context();
 
         timer.startRecord("PRE_PROCESS");
-        timer.startRecord("PROJECT_CLASS");
-        transformer.traverseOnly(ClassFetcher.newInstance(new CollectClassInfoProcessor(context)));
-        timer.stopRecord("PROJECT_CLASS", "Process project all .class files cost time = [%s ms]");
+        if (globalContext.enable()) {
+            timer.startRecord("PROJECT_CLASS");
+            transformer.traverseOnly(ClassFetcher.newInstance(new CollectClassInfoProcessor(context)));
+            timer.stopRecord("PROJECT_CLASS", "Process project all .class files cost time = [%s ms]");
+        }
 
-        timer.startRecord("ANDROID");
-        AndroidJarProcessor androidJarProcessor = new AndroidJarProcessor(context);
-        transformer.traverseAndroidJar(globalContext.androidJar(), ClassFetcher.newInstance(androidJarProcessor));
-        Log.i(String.format("Collect android class count = [%s]", androidJarProcessor.getCount()));
-        timer.stopRecord("ANDROID", "Process android jar cost time = [%s ms]");
+        if (globalContext.enable()) {
+            timer.startRecord("ANDROID");
+            AndroidJarProcessor androidJarProcessor = new AndroidJarProcessor(context);
+            transformer.traverseAndroidJar(globalContext.androidJar(), ClassFetcher.newInstance(androidJarProcessor));
+            Log.i(String.format("Collect android class count = [%s]", androidJarProcessor.getCount()));
+            timer.stopRecord("ANDROID", "Process android jar cost time = [%s ms]");
+        }
 
         timer.stopRecord("PRE_PROCESS", "Collect info cost time = [%s ms]");
         Log.i("access$ method count : " + context.methodCount());
 
-        timer.startRecord("PROCESS");
-        transformer.resolve(ClassFetcher.newInstance(new ShrinkAccessProcessor(context)));
-        timer.stopRecord("PROCESS", "Shrink access$ cost time = [%s ms]");
+        if (globalContext.enable()) {
+            timer.startRecord("PROCESS");
+            transformer.resolve(ClassFetcher.newInstance(new ShrinkAccessProcessor(context)));
+            timer.stopRecord("PROCESS", "Shrink access$ cost time = [%s ms]");
+        } else {
+            transformer.skip();
+        }
 
         timer.record("Inline access$ transform total cost time = [%s ms]");
     }

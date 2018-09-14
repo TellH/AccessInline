@@ -1,14 +1,17 @@
 package com.tellh.transformer;
 
+import com.android.build.api.transform.DirectoryInput;
+import com.android.build.api.transform.Format;
 import com.android.build.api.transform.JarInput;
 import com.android.build.api.transform.QualifiedContent;
+import com.android.utils.FileUtils;
 import com.google.common.io.Files;
 import com.tellh.transformer.fetcher.ClassData;
 import com.tellh.transformer.fetcher.ContentFetcher;
 import com.tellh.transformer.fetcher.task.ClassVisitTask;
 import com.tellh.transformer.fetcher.task.ExtractDirContentTask;
-import com.tellh.transformer.fetcher.task.QualifiedContentTask;
 import com.tellh.transformer.fetcher.task.ExtractJarContentTask;
+import com.tellh.transformer.fetcher.task.QualifiedContentTask;
 import com.tellh.transformer.resolver.DirContentResolver;
 import com.tellh.transformer.resolver.JarContentResolver;
 import com.tellh.transformer.resolver.QualifiedContentResolverImpl;
@@ -19,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -54,6 +58,35 @@ public class Transformer {
                 .collect(Collectors.toList());
 
         // block until all task has finish.
+        try {
+            for (Future<Void> future : tasks) {
+                future.get();
+            }
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof IOException) {
+                throw (IOException) cause;
+            } else if (cause instanceof InterruptedException) {
+                throw (InterruptedException) cause;
+            } else {
+                throw new RuntimeException(e.getCause());
+            }
+        }
+    }
+
+    public void skip() throws InterruptedException, IOException {
+        List<Future<Void>> tasks = Stream.concat(context.getAllJars().stream(), context.getAllDirs().stream())
+                .map(q -> (Callable<Void>) () -> {
+                    File dest = context.getOutputFile(q);
+                    if (q instanceof DirectoryInput) {
+                        FileUtils.copyDirectory(q.getFile(), dest);
+                    } else {
+                        FileUtils.copyFile(q.getFile(), dest);
+                    }
+                    return null;
+                })
+                .map(t -> service.submit(t))
+                .collect(Collectors.toList());
         try {
             for (Future<Void> future : tasks) {
                 future.get();
