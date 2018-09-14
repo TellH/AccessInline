@@ -1,9 +1,8 @@
-[![License](https://img.shields.io/badge/license-Apache%202-green.svg)](https://www.apache.org/licenses/LICENSE-2.0)
-[![Download](https://api.bintray.com/packages/tellh/maven/inline-plugin/images/download.svg) ](https://bintray.com/tellh/maven/inline-plugin/_latestVersion)
 
 # AccessInline
 An Android gradle plugin to inline methods that start with the prefix 'access$' in bytecode.
-
+[![License](https://img.shields.io/badge/license-Apache%202-green.svg)](https://www.apache.org/licenses/LICENSE-2.0)
+[![Download](https://api.bintray.com/packages/tellh/maven/inline-plugin/images/download.svg) ](https://bintray.com/tellh/maven/inline-plugin/_latestVersion)
 ## What is it used for
 
 Consider the following class definition:
