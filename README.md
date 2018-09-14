@@ -65,6 +65,13 @@ Our release apk has 253108 methods, the plugin would optimize 7601 methods, decr
 
 
 
+## Thanks
+
+- ASM
+- [lancet](https://github.com/eleme/lancet)
+
+
+
 ## License
 
 Apache 2.0
